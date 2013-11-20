@@ -46,3 +46,24 @@ to the cron table::
 and delete it from /usr/bin/::
 
 	sudo rm -v /usr/bin/ssh_flc
+
+Notes
+-----
+
+If you want to remove a blocked entry from iptables early, try::
+
+	ps -Af | grep 'PID\|sleep 300' | grep -v grep
+
+to find the PID of the entry you need (this is easier when there's
+only one since there's no way to tell between different ones) and
+use the kill command on it::
+
+	sudo kill [PID]
+
+this will kill the sleep command, and make the command that removes
+the entry from iptables run right away.
+
+NOTE: If you do this right after the entry gets added to iptables,
+it may get added to iptables again a minute later. This will only
+happen once. As long as more than one minute has passed since the
+entry was added, you should be fine.
