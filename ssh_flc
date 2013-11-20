@@ -24,7 +24,7 @@ do
 			/sbin/iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
 
 			#Start a new thread that will unblock the IP after x seconds
-			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
+			( sleep 300; /sbin/iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
 		fi
 	fi
 done
