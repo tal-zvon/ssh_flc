@@ -6,9 +6,8 @@ uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 { echo "You must be root to run $0. Try again with the command 'sudo $0'" | fmt -w `tput cols`; exit 1; }
 
 #Figure out how many different source IP addresses failed to login
-#in the past 2 minutes (NOT 120 seconds! - more like in the current minute and the
-#previous minute)
-FAILED_IPs=$(grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | grep "$(date +'%b %d %R')\|$(date --date='-1 minute' +'%b %d %R')" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+#in the past 2 minutes
+FAILED_IPs=$(TEST=$(date -d "now-2minutes" +"%b %d %R:%S"); IFS=$'\n'; grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin); do if [[ $LINE > $TEST ]]; then echo $LINE; fi; done | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 
 IFS=$'\n'
 for IP in $(echo "$FAILED_IPs" | sort -u)
