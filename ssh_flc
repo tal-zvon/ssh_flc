@@ -21,7 +21,7 @@ do
 		#Make sure $IP is not already blocked by iptables
 		if ! iptables -nL INPUT | grep "[^0-9]$IP[^0-9]" | grep -q REJECT
 		then
-			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
+			/sbin/iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
 
 			#Start a new thread that will unblock the IP after x seconds
 			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
