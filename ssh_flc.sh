@@ -5,10 +5,6 @@
 uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 { echo "You must be root to run $0. Try again with the command 'sudo $0'" | fmt -w `tput cols`; exit 1; }
 
-#A file containing a list of logs
-#that we've already read
-CHECKED_LOGS=/home/test/checked.log
-
 #Figure out how many different source IP addresses failed to login
 #in the past 2 minutes (NOT 120 seconds! - more like in the current minute and the
 #previous minute)
