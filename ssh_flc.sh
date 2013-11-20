@@ -1,6 +1,10 @@
 #!/bin/bash
 #SSH Failed Login Checker
 
+#Only run if user is root
+uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
+{ echo "You must be root to run $0. Try again with the command 'sudo $0'" | fmt -w `tput cols`; exit 1; }
+
 #A file containing a list of logs
 #that we've already read
 CHECKED_LOGS=/home/test/checked.log
@@ -8,7 +12,7 @@ CHECKED_LOGS=/home/test/checked.log
 #Figure out how many different source IP addresses failed to login
 #in the past 2 minutes (NOT 120 seconds! - more like in the current minute and the
 #previous minute)
-FAILED_IPs=$(grep --color=auto -i 'sshd' /var/log/auth.log | grep -i 'failed password' | grep --color=auto "$(date +'%b %d %R')\|$(date --date='-1 minute' +'%b %d %R')" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+FAILED_IPs=$(grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | grep "$(date +'%b %d %R')\|$(date --date='-1 minute' +'%b %d %R')" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 
 IFS=$'\n'
 for IP in $(echo "$FAILED_IPs" | sort -u)
