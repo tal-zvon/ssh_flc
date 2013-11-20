@@ -17,9 +17,18 @@ do
 	do
 		#See how many failed logins the IP we are looking at had
 		#in the past 2 minutes
-		if [[ $(echo "$FAILED_IPs" | grep -c "^${IP}$") -gt 10 ]]
+		if [[ $(echo "$FAILED_IPs" | grep -c "^${IP}$") -ge 10 ]]
 		then
-			echo "$IP should be blocked"
+			#$IP has made over 10 failed attempts to login in the past 10 minutes
+
+			#Make sure $IP is not already blocked by iptables
+			if ! iptables -nL INPUT | grep "$IP[^0-9]" | grep -q REJECT
+			then
+				iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
+
+				#Start a new thread that will unblock the IP after x seconds
+				( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
+			fi
 		fi
 	done
 
