@@ -20,7 +20,7 @@ do
 		#$IP has made over 10 failed attempts to login in the past 10 minutes
 
 		#Make sure $IP is not already blocked by iptables
-		if ! iptables -nL INPUT | grep "$IP[^0-9]" | grep -q REJECT
+		if ! iptables -nL INPUT | grep "[^0-9]$IP[^0-9]" | grep -q REJECT
 		then
 			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
 
