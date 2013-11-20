@@ -1,6 +1,8 @@
 #!/bin/bash
 #SSH Failed Login Checker
 
+export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
 #Only run if user is root
 uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 { echo "You must be root to run $0. Try again with the command 'sudo $0'" | fmt -w `tput cols`; exit 1; }
@@ -21,10 +23,10 @@ do
 		#Make sure $IP is not already blocked by iptables
 		if ! iptables -nL INPUT | grep "[^0-9]$IP[^0-9]" | grep -q REJECT
 		then
-			/sbin/iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
+			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
 
 			#Start a new thread that will unblock the IP after x seconds
-			( sleep 300; /sbin/iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
+			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
 		fi
 	fi
 done
