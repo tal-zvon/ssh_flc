@@ -30,13 +30,23 @@ do
 			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT &&
 			#Email root about the problem
 			{
-				echo  "$IP is being blocked for 5 minutes from connecting to the ssh server. It has had over 10 failed connections in the past 2 minutes."
-				echo -e "Here's the log:\n\n"
-				echo "$FAILED_LOGS" | grep "[^0-9]$IP[^0-9]"
-			} | mail -s "ssh_flc: unauthorized entry attempt" root@localhost ||
+				echo '<html>'
+				echo  "<b>$IP</b> is being blocked for 5 minutes from connecting to the ssh server. It has had over 10 failed connections in the past 2 minutes."
+				echo -e "Here's the log:<br><br>"
+				IFS=$'\n'
+				for LOG in $(echo "$FAILED_LOGS" | grep "[^0-9]$IP[^0-9]")
+				do
+					#Figure out the user name in current log
+					echo $LOG
+					echo "<br>"
+				done
+				echo '</html>'
+			} | mail -a "Content-type: text/html;" -s "ssh_flc: unauthorized entry attempt" root@localhost ||
 			{
-				echo "$IP should have been added to the iptables block list, but the command was NOT successful."
-			} | mail -s "ssh_flc: unauthorized entry attempt" root@localhost
+				echo '<html>'
+				echo "<b>$IP</b> should have been added to the iptables block list, but the command was <b>NOT successful.</b>"
+				echo '</html>'
+			} | mail -a "Content-type: text/html;" -s "ssh_flc: unauthorized entry attempt" root@localhost
 
 			#Start a new thread that will unblock the IP after x seconds
 			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
