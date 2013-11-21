@@ -23,7 +23,10 @@ do
 		#Make sure $IP is not already blocked by iptables
 		if ! iptables -nL INPUT | grep "[^0-9]$IP[^0-9]" | grep -q REJECT
 		then
-			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT
+			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT &&
+			#Email root about the problem
+			echo -e "$IP is being blocked for 5 minutes from connecting to the ssh server. It has had over 10 failed connections in the past 2 minutes.\nHere's the log:\n\n$(TEST=$(date -d "now-2minutes" +"%b %d %R:%S"); IFS=$'\n'; grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin); do if [[ $LINE > $TEST ]]; then echo $LINE; fi; done | grep "[^0-9]$IP[^0-9]")" | mail -s "ssh_flc: unauthorized entry attempt" root@localhost ||
+			echo "$IP should have been added to the iptables block list, but the command was NOT successful." | mail -s "ssh_flc: unauthorized entry attempt" root@localhost
 
 			#Start a new thread that will unblock the IP after x seconds
 			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
