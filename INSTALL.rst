@@ -67,3 +67,7 @@ NOTE: If you do this right after the entry gets added to iptables,
 it may get added to iptables again a minute later. This will only
 happen once. As long as more than one minute has passed since the
 entry was added, you should be fine.
+
+NOTE 2: Unless you have some custom scripts that save your iptables
+rules when you power off the system, and restore them when you start
+up, a simple reboot will clear everyone from the ban list
