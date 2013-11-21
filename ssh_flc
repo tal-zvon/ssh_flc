@@ -37,7 +37,10 @@ do
 				for LOG in $(echo "$FAILED_LOGS" | grep "[^0-9]$IP[^0-9]")
 				do
 					#Figure out the user name in current log
-					echo $LOG
+					USERNAME=$(echo "$LOG" | grep -o 'user .* from' | sed 's/^user //g' | sed 's/ from$//g')
+					#Make the user name and IP bold, and the username green in the logs
+					echo $LOG | sed "s#\($USERNAME\)#<b>\1</b>#g" | sed "s#\($IP\)#<b>\1</b>#g" | sed 's%\(^.*\[[0-9]*\]:\)%<span style="color:#255F16">\1</span>%g'
+					#New line
 					echo "<br>"
 				done
 				echo '</html>'
