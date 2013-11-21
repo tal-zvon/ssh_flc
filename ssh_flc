@@ -7,9 +7,13 @@ export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 { echo "You must be root to run $0. Try again with the command 'sudo $0'" | fmt -w `tput cols`; exit 1; }
 
+#Figure out all the log files of all the failed ssh login attempts
+#that happened in the past 2 minutes
+FAILED_LOGS=$(TEST=$(date -d "now-2minutes" +"%b %d %R:%S"); IFS=$'\n'; grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin); do if [[ $LINE > $TEST ]]; then echo $LINE; fi; done)
+
 #Figure out how many different source IP addresses failed to login
 #in the past 2 minutes
-FAILED_IPs=$(TEST=$(date -d "now-2minutes" +"%b %d %R:%S"); IFS=$'\n'; grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin); do if [[ $LINE > $TEST ]]; then echo $LINE; fi; done | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+FAILED_IPs=$(echo "$FAILED_LOGS" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 
 IFS=$'\n'
 for IP in $(echo "$FAILED_IPs" | sort -u)
@@ -25,8 +29,14 @@ do
 		then
 			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT &&
 			#Email root about the problem
-			echo -e "$IP is being blocked for 5 minutes from connecting to the ssh server. It has had over 10 failed connections in the past 2 minutes.\nHere's the log:\n\n$(TEST=$(date -d "now-2minutes" +"%b %d %R:%S"); IFS=$'\n'; grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin); do if [[ $LINE > $TEST ]]; then echo $LINE; fi; done | grep "[^0-9]$IP[^0-9]")" | mail -s "ssh_flc: unauthorized entry attempt" root@localhost ||
-			echo "$IP should have been added to the iptables block list, but the command was NOT successful." | mail -s "ssh_flc: unauthorized entry attempt" root@localhost
+			{
+				echo  "$IP is being blocked for 5 minutes from connecting to the ssh server. It has had over 10 failed connections in the past 2 minutes."
+				echo -e "Here's the log:\n\n"
+				echo "$FAILED_LOGS" | grep "[^0-9]$IP[^0-9]"
+			} | mail -s "ssh_flc: unauthorized entry attempt" root@localhost ||
+			{
+				echo "$IP should have been added to the iptables block list, but the command was NOT successful."
+			} | mail -s "ssh_flc: unauthorized entry attempt" root@localhost
 
 			#Start a new thread that will unblock the IP after x seconds
 			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
