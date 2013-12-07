@@ -10,13 +10,16 @@ uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 #Figure out all the log files of all the failed ssh login attempts
 #that happened in the past 2 minutes
 FAILED_LOGS=$(
+	#Figure out what the epoch time was 2 minutes ago
 	DATE_MINUS_2M=$(date -d "now-2minutes" +"%s")
 
 	IFS=$'\n'
 	sudo grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin)
 	do
+		#Figure out what the date on the log file we are looking at is in epoch time
 		LOG_DATE=$(echo $LINE | awk '{print $1,$2,$3}' | date -d "`cat /dev/stdin`" +"%s")
 
+		#Compare the 2 epoch dates
 		if [[ $LOG_DATE -gt $DATE_MINUS_2M ]]
 		then
 			echo $LINE
