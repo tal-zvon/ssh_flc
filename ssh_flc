@@ -10,18 +10,18 @@ uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 #Figure out all the log files of all the failed ssh login attempts
 #that happened in the past 2 minutes
 FAILED_LOGS=$(
-DATE_MINUS_2M=$(date -d "now-2minutes" +"%s")
+	DATE_MINUS_2M=$(date -d "now-2minutes" +"%s")
 
-IFS=$'\n'
-sudo grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin)
-do
-	LOG_DATE=$(echo $LINE | awk '{print $1,$2,$3}' | date -d "`cat /dev/stdin`" +"%s")
+	IFS=$'\n'
+	sudo grep -i 'sshd' /var/log/auth.log | grep -i 'failed password' | for LINE in $(cat /dev/stdin)
+	do
+		LOG_DATE=$(echo $LINE | awk '{print $1,$2,$3}' | date -d "`cat /dev/stdin`" +"%s")
 
-	if [[ $LOG_DATE -gt $DATE_MINUS_2M ]]
-	then
-		echo $LINE
-	fi
-done
+		if [[ $LOG_DATE -gt $DATE_MINUS_2M ]]
+		then
+			echo $LINE
+		fi
+	done
 )
 
 #Figure out how many different source IP addresses failed to login
