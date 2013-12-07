@@ -68,7 +68,7 @@ do
 			} | mail -a "Content-type: text/html;" -s "ssh_flc: unauthorized entry attempt" root@localhost
 
 			#Start a new thread that will unblock the IP after x seconds
-			( sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT ) & 
+			setsid bash -c "{ [[ -t 0 ]] && exec </dev/null; [[ -t 1 ]] && exec >/dev/null; [[ -t 2 ]] && exec 2>/dev/null; cd /; eval exec {3..255}\>\&-; sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT; }" &
 		fi
 	fi
 done
