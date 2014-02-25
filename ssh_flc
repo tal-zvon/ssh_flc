@@ -30,6 +30,7 @@ FAILED_LOGS=$(
 #Figure out how many different source IP addresses failed to login
 #in the past 2 minutes
 FAILED_IPs=$(echo "$FAILED_LOGS" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+SSH_PORTS=$(grep 'Port' /etc/ssh/sshd_config | awk '{print $2}')
 
 IFS=$'\n'
 for IP in $(echo "$FAILED_IPs" | sort -u)
@@ -38,12 +39,24 @@ do
 	#in the past 2 minutes
 	if [[ $(echo "$FAILED_IPs" | grep -c "^${IP}$") -ge 10 ]]
 	then
-		#$IP has made over 10 failed attempts to login in the past 10 minutes
+		#$IP has made over 10 failed attempts to login in the past 2 minutes
 
 		#Make sure $IP is not already blocked by iptables
 		if ! iptables -nL INPUT | grep "[^0-9]$IP[^0-9]" | grep -q REJECT
 		then
-			iptables -A INPUT -s $IP -p tcp --dport 22 -j REJECT &&
+			#Block all ports SSH is listening on
+			#Note: the for loop is in a subshell (wrapped in brackets) because we need
+			#the loop to exit with an error code if one of its commands fail, but "break"
+			#doesn't do error codes. "exit" would normally exit the entire script - this way
+			#it only exits the subshell
+			(
+				IFS=$'\n';
+
+				for PORT in $SSH_PORTS
+				do
+					iptables -A INPUT -s $IP -p tcp --dport $PORT -j REJECT || exit 1
+				done
+			) &&
 			#Email root about the problem
 			{
 				echo '<html>'
@@ -68,7 +81,7 @@ do
 			} | mail -a "Content-type: text/html;" -s "ssh_flc: unauthorized entry attempt" root@localhost
 
 			#Start a new thread that will unblock the IP after x seconds
-			setsid bash -c "{ [[ -t 0 ]] && exec </dev/null; [[ -t 1 ]] && exec >/dev/null; [[ -t 2 ]] && exec 2>/dev/null; cd /; eval exec {3..255}\>\&-; sleep 300; iptables -D INPUT -s $IP -p tcp --dport 22 -j REJECT; }" &
+			setsid bash -c "{ [[ -t 0 ]] && exec </dev/null; [[ -t 1 ]] && exec >/dev/null; [[ -t 2 ]] && exec 2>/dev/null; cd /; eval exec {3..255}\>\&-; sleep 300; for PORT in $(echo ${SSH_PORTS} | tr '\n' ' '); do iptables -D INPUT -s $IP -p tcp --dport \$PORT -j REJECT; done; }" &
 		fi
 	fi
 done
